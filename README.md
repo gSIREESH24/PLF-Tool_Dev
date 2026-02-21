@@ -128,7 +128,7 @@ run(code, context):
 
 **Example:**
 ```
-Global: { x = 10 }
+Global: { x = 5 }
 
 JavaScript: { console.log(x) }
     → Generates: var x = 10;
