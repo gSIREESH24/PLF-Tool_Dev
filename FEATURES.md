@@ -266,8 +266,4 @@ Here's simple, practical guidance to make the project grow without becoming unma
 - Split the standard library into `core` and `extras` packages; `core` installs with runtime, `extras` come from package manager.
 - Provide a small HTTP-based package registry for the package manager; later mirror to a CDN.
 
----
-I expanded `FEATURES.md` with prioritized features, simple examples, and scaling guidance. If you'd like, I can now:
-- implement a small `fn`/call example in the `languages/` folder (lexer+parser+interpreter demo), or
-- create `CONTRIBUTING.md` and `poly.toml` manifest templates next.
 
