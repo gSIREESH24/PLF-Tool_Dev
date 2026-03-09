@@ -1,0 +1,36 @@
+-- Java Function Examples - Cross-Language Calls
+
+global {
+    title = "Java Math Library"
+}
+
+java {
+    public class MathLib {
+        public static int square(int x) {
+            return x * x;
+        }
+        
+        public static int cube(int x) {
+            return x * x * x;
+        }
+        
+        public static double average(int a, int b) {
+            return (a + b) / 2.0;
+        }
+    }
+}
+
+python {
+    def display_results(shape, result):
+        print(f"{shape}: {result}")
+    
+    # Call Java functions
+    sq = call('square', [5])
+    cb = call('cube', [3])
+    
+    print(f"Square of 5: {sq}")
+    print(f"Cube of 3: {cb}")
+    
+    avg = call('average', [10, 20])
+    print(f"Average of 10 and 20: {avg}")
+}

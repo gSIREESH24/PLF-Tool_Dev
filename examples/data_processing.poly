@@ -1,0 +1,39 @@
+-- String Processing with Type Conversion
+
+python {
+    def to_uppercase(text: str) -> str:
+        """Convert text to uppercase"""
+        return text.upper()
+    
+    def reverse_string(text: str) -> str:
+        """Reverse a string"""
+        return text[::-1]
+    
+    def count_chars(text: str) -> int:
+        """Count characters in string"""
+        return len(text)
+    
+    export('to_uppercase', to_uppercase)
+    export('reverse_string', reverse_string)
+    export('count_chars', count_chars)
+}
+
+javascript {
+    // Call Python string functions from JavaScript
+    let text = "Hello, Polyglot!";
+    
+    let upper = call('to_uppercase', [text]);
+    let reversed = call('reverse_string', [text]);
+    let length = call('count_chars', [text]);
+    
+    console.log(`Original: ${text}`);
+    console.log(`Uppercase: ${upper}`);
+    console.log(`Reversed: ${reversed}`);
+    console.log(`Length: ${length}`);
+}
+
+python {
+    # Use results from JavaScript execution
+    print(f"Upper case: {to_uppercase('hello')}")
+    print(f"Reversed: {reverse_string('hello')}")
+}
