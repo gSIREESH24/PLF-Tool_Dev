@@ -2,7 +2,7 @@ import inspect
 import re
 from core.function_signature import FunctionSignature, Parameter
 
-def run(code, context, registry=None):
+def run(code, context, registry=None, is_global=False):
 
     def export(name, value):
         context.set(name, value)
@@ -33,7 +33,7 @@ def run(code, context, registry=None):
     exec(code, local_env)
 
     if registry:
-        _extract_and_register_functions(code, local_env, registry, context)
+        _extract_and_register_functions(code, local_env, registry, context, is_global=is_global)
 
     for key, value in local_env.items():
         if not key.startswith("__") and key not in ("export", "call", "get_function"):
@@ -41,7 +41,7 @@ def run(code, context, registry=None):
             if not inspect.isfunction(value):
                 context.set(key, value)
 
-def _extract_and_register_functions(code, local_env, registry, context):
+def _extract_and_register_functions(code, local_env, registry, context, is_global=False):
 
     func_pattern = r'def\s+(\w+)\s*\((.*?)\)'
 
@@ -56,18 +56,19 @@ def _extract_and_register_functions(code, local_env, registry, context):
 
             return_annotation = func_obj.__annotations__.get('return', None)
 
+            scope = "global" if is_global else "global"
+
             sig = FunctionSignature(
                 name=func_name,
                 language="python",
                 parameters=parameters,
                 return_type=return_annotation,
-                scope="global",
+                scope=scope,
                 callable=func_obj,
                 doc=func_obj.__doc__
             )
 
-            registry.register(sig, scope="global")
-            print(f"      [Python] Registered function: {func_name}")
+            registry.register(sig, scope=scope)
 
             context.set(func_name, func_obj)
 

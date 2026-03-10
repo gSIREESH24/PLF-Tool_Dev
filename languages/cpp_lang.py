@@ -2,12 +2,21 @@ import subprocess
 import tempfile
 import os
 import re
+import json
 from core.function_signature import FunctionSignature, Parameter
 
-def run(code, context=None, registry=None):
+def run(code, context=None, registry=None, is_global=False):
+
+    # Generate wrapper code for registered functions if in local scope
+    wrapper_code = ""
+    if registry and not is_global:
+        wrapper_code = _generate_cpp_wrappers(registry)
+
+    # Inject wrapper code into the C++ code
+    enhanced_code = wrapper_code + "\n" + code
 
     with tempfile.NamedTemporaryFile(suffix=".cpp", delete=False) as cpp_file:
-        cpp_file.write(code.encode())
+        cpp_file.write(enhanced_code.encode())
         cpp_file_name = cpp_file.name
 
     exe_file = cpp_file_name.replace(".cpp", ".exe") if os.name == 'nt' else cpp_file_name.replace(".cpp", "")
@@ -50,8 +59,34 @@ def run(code, context=None, registry=None):
         except:
             pass
 
-    if registry:
+    if registry and is_global:
         _extract_and_register_functions(code, registry, context)
+
+def _generate_cpp_wrappers(registry):
+    wrappers = "#include <iostream>\n"
+    wrappers += "// Auto-generated function wrappers\n\n"
+    
+    # Create wrappers for registered Python functions
+    python_funcs = registry.global_functions
+    
+    for func_name, func_sig in python_funcs.items():
+        if func_sig.language == "python" and func_sig.callable:
+            # Generate a C++ wrapper function
+            params = func_sig.parameters
+            param_decls = ", ".join([f"int {p.name}" for p in params]) if params else ""
+            
+            # Create a wrapper that calls the Python function
+            wrapper = f"""
+// Wrapper for Python function: {func_name}
+int {func_name}({param_decls}) {{
+    // This function is available from the registry
+    // Call through the registry at runtime
+    return 0;  // Placeholder
+}}
+"""
+            wrappers += wrapper
+    
+    return wrappers
 
 def _extract_and_register_functions(code, registry, context):
 
@@ -78,7 +113,6 @@ def _extract_and_register_functions(code, registry, context):
         )
 
         registry.register(sig, scope="global")
-        print(f"      [C++] Registered function: {func_name}")
 
 def _parse_cpp_params(params_str):
     parameters = []

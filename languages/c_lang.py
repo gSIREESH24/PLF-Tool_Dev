@@ -77,7 +77,6 @@ def _extract_and_register_functions(code, registry, context):
         )
 
         registry.register(sig, scope="global")
-        print(f"      [C] Registered function: {func_name}")
 
 def _parse_c_params(params_str):
     parameters = []

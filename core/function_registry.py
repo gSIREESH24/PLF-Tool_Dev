@@ -26,12 +26,10 @@ class FunctionRegistry:
                  block_id: Optional[str] = None) -> None:
         if scope == "global":
             self.global_functions[signature.name] = signature
-            print(f"[Registry] Registered global function: {signature.name}")
         elif scope == "local" and block_id:
             if block_id not in self.local_functions:
                 self.local_functions[block_id] = {}
             self.local_functions[block_id][signature.name] = signature
-            print(f"[Registry] Registered local function: {signature.name} (block: {block_id})")
         else:
             raise ValueError(f"Invalid scope: {scope}")
 

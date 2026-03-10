@@ -90,7 +90,6 @@ def _extract_and_register_functions(code, registry, context):
         )
 
         registry.register(sig, scope="global")
-        print(f"      [Java] Registered function: {func_name}")
 
 def _parse_java_params(params_str):
     parameters = []
