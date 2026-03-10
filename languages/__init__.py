@@ -10,5 +10,5 @@ LANGUAGE_REGISTRY = {
     "c": c_run,
     "java": java_run,
     "cpp": cpp_run,
-    "c++": cpp_run  # Alias for C++
+    "c++": cpp_run
 }
