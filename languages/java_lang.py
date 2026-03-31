@@ -14,13 +14,28 @@ def run(code, context=None, registry=None):
                 classes_code += generate_java_class(cls) + '\n'
         except Exception:
             pass
+        context_vars = ""
+        if context:
+            for key, value in context.all().items():
+                if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': continue
+                try:
+                    if isinstance(value, bool): java_type = "boolean"; java_val = "true" if value else "false"
+                    elif isinstance(value, int): java_type = "int"; java_val = value
+                    elif isinstance(value, float): java_type = "double"; java_val = value
+                    elif isinstance(value, str): java_type = "String"; java_val = f'"{value}"'
+                    else: continue
+                    context_vars += f"    public static {java_type} {key} = {java_val};\n"
+                except Exception:
+                    pass
+
         if 'class ' not in code:
             class_name = 'PolyJavaRuntime'
-            full_code = classes_code + f'\npublic class {class_name} {{\n    {code}\n\n    public static void main(String[] args) {{\n\n    }}\n}}\n'
+            full_code = classes_code + f'\npublic class {class_name} {{\n{context_vars}\n    {code}\n\n    public static void main(String[] args) {{\n\n    }}\n}}\n'
         else:
             match = re.search('class\\s+(\\w+)', code)
             class_name = match.group(1) if match else 'PolyJavaRuntime'
-            full_code = classes_code + code
+            injected_code = re.sub(r'class\s+\w+\s*\{', lambda m: m.group(0) + '\n' + context_vars, code, count=1)
+            full_code = classes_code + injected_code
         java_file = os.path.join(temp_dir, f'{class_name}.java')
         with open(java_file, 'w') as f:
             f.write(full_code)
@@ -52,7 +67,7 @@ def _extract_and_register_functions(code, registry, context):
         if func_name in ('main', 'equals', 'toString', 'hashCode'):
             continue
         parameters = _parse_java_params(params_str)
-        sig = FunctionSignature(name=func_name, language='java', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None)
+        sig = FunctionSignature(name=func_name, language='java', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None, metadata={'code': code})
         registry.register(sig, scope='global')
 
 def _parse_java_params(params_str):

@@ -82,3 +82,11 @@ def generate_java_class(cls_def: ClassDefinition) -> str:
     lines.append('    }')
     lines.append('}')
     return '\n'.join(lines) + '\n'
+
+def generate_c_struct(cls_def: ClassDefinition) -> str:
+    lines = [f'typedef struct {{']
+    for field in cls_def.fields:
+        t = 'char*' if field.type_hint == 'string' else field.type_hint
+        lines.append(f'    {t} {field.name};')
+    lines.append(f'}} {cls_def.name};')
+    return '\n'.join(lines) + '\n'

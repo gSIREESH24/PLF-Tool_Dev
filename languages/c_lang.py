@@ -5,8 +5,30 @@ import re
 from core.function_signature import FunctionSignature, Parameter
 
 def run(code, context=None, registry=None):
+    enhanced_code = "#include <string.h>\n#include <stdlib.h>\n#include <stdbool.h>\n"
+    if context:
+        from global_ns.marshalling import Marshaller
+        for key, value in context.all().items():
+            if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': continue
+            try:
+                if isinstance(value, bool): c_type = "bool"; c_val = Marshaller.python_to_c(value)
+                elif isinstance(value, int): c_type = "int"; c_val = value
+                elif isinstance(value, float): c_type = "float"; c_val = value
+                elif isinstance(value, str): c_type = "char*"; c_val = Marshaller.python_to_c(value)
+                else: continue
+                enhanced_code += f"{c_type} {key} = {c_val};\n"
+            except Exception:
+                pass
+    try:
+        from core.class_registry import get_class_registry, generate_c_struct
+        cls_reg = get_class_registry()
+        for cls in cls_reg.get_all():
+            enhanced_code += generate_c_struct(cls) + "\n"
+    except Exception:
+        pass
+    enhanced_code += code
     with tempfile.NamedTemporaryFile(suffix='.c', delete=False) as c_file:
-        c_file.write(code.encode())
+        c_file.write(enhanced_code.encode())
         c_file_name = c_file.name
     exe_file = c_file_name.replace('.c', '.exe') if os.name == 'nt' else c_file_name.replace('.c', '')
     try:
@@ -43,7 +65,7 @@ def _extract_and_register_functions(code, registry, context):
         if func_name in ('main', 'printf', 'scanf', 'malloc', 'free'):
             continue
         parameters = _parse_c_params(params_str)
-        sig = FunctionSignature(name=func_name, language='c', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None)
+        sig = FunctionSignature(name=func_name, language='c', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None, metadata={'code': code})
         registry.register(sig, scope='global')
 
 def _parse_c_params(params_str):

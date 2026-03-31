@@ -1,0 +1,54 @@
+global {
+    my_shared_int = 42
+    my_shared_string = "Hello Polyglot"
+    my_shared_float = 3.1415
+
+    class ConfigInfo {
+        string os_name
+        int max_threads
+    }
+}
+
+python {
+    print("--- Python ---")
+    print(f"Int: {my_shared_int}, String: {my_shared_string}, Float: {my_shared_float}")
+    
+    python_var = "Created in Python"
+    export("python_var", python_var)
+}
+
+javascript {
+    console.log("--- JavaScript ---");
+    console.log(`Int: ${my_shared_int}, String: ${my_shared_string}, Float: ${my_shared_float}`);
+    console.log(`From Python: ${python_var}`);
+}
+
+c {
+    #include <stdio.h>
+    int main() {
+        printf("--- C ---\n");
+        printf("Int: %d, String: %s, Float: %f\n", my_shared_int, my_shared_string, my_shared_float);
+        printf("From Python: %s\n", python_var);
+        return 0;
+    }
+}
+
+cpp {
+    #include <iostream>
+    int main() {
+        std::cout << "--- C++ ---\n";
+        std::cout << "Int: " << my_shared_int << ", String: " << my_shared_string << ", Float: " << my_shared_float << "\n";
+        std::cout << "From Python: " << python_var << "\n";
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("--- Java ---");
+            System.out.println("Int: " + my_shared_int + ", String: " + my_shared_string + ", Float: " + my_shared_float);
+            System.out.println("From Python: " + python_var);
+        }
+    }
+}

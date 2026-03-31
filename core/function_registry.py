@@ -43,7 +43,25 @@ class FunctionRegistry:
             raise FunctionNotFoundError(f'Function not found: {name}\nAvailable functions: {self.list_functions()}') from e
         self._validate_arguments(signature, args, kwargs)
         try:
-            result = signature.callable(*args, **kwargs)
+            if signature.callable:
+                result = signature.callable(*args, **kwargs)
+            else:
+                try:
+                    from languages.function_adapters import get_adapter
+                    adapter = get_adapter(signature.language)
+                    code = signature.metadata.get('code', '')
+                    if signature.language == 'javascript':
+                        result = adapter.call_js_function(signature.name, args, js_code=code)
+                    elif signature.language == 'c':
+                        result = adapter.call_c_function(signature.name, args, c_code=code)
+                    elif signature.language == 'cpp':
+                        result = adapter.call_cpp_function(signature.name, args, cpp_code=code)
+                    elif signature.language == 'java':
+                        result = adapter.call_java_function(signature.name, args, java_code=code)
+                    else:
+                        raise NotImplementedError(f"Adapter error for {signature.language}")
+                except Exception as ex:
+                    raise InvalidFunctionCallError(f"Adapter execution failed: {ex}")
             self.call_history.append({'function': name, 'language': signature.language, 'args': str(args), 'kwargs': str(kwargs), 'result': str(result), 'success': True})
             return result
         except Exception as e:

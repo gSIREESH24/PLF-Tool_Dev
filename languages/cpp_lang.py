@@ -9,7 +9,20 @@ def run(code, context=None, registry=None, is_global=False):
     wrapper_code = ''
     if registry and (not is_global):
         wrapper_code = _generate_cpp_wrappers(registry)
-    enhanced_code = '#include <string>\n' + wrapper_code + '\n'
+    enhanced_code = '#include <string>\n#include <vector>\n#include <map>\n' + wrapper_code + '\n'
+    if context:
+        from global_ns.marshalling import Marshaller
+        for key, value in context.all().items():
+            if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': continue
+            try:
+                if isinstance(value, bool): cpp_type = "bool"; cpp_val = "true" if value else "false"
+                elif isinstance(value, int): cpp_type = "int"; cpp_val = value
+                elif isinstance(value, float): cpp_type = "float"; cpp_val = value
+                elif isinstance(value, str): cpp_type = "std::string"; cpp_val = f'"{value}"'
+                else: continue
+                enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+            except Exception:
+                pass
     try:
         from core.class_registry import get_class_registry, generate_cpp_class
         cls_reg = get_class_registry()
@@ -68,7 +81,7 @@ def _extract_and_register_functions(code, registry, context):
         if func_name in ('main', 'std') or func_name.startswith('~'):
             continue
         parameters = _parse_cpp_params(params_str)
-        sig = FunctionSignature(name=func_name, language='cpp', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None)
+        sig = FunctionSignature(name=func_name, language='cpp', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None, metadata={'code': code})
         registry.register(sig, scope='global')
 
 def _parse_cpp_params(params_str):

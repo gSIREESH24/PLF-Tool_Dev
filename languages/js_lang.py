@@ -49,7 +49,7 @@ def _extract_and_register_functions(code, registry, context):
             func_name = match.group(1)
             params_str = match.group(2)
             parameters = _parse_js_params(params_str)
-            sig = FunctionSignature(name=func_name, language='javascript', parameters=parameters, return_type='any', scope='global', callable=None, doc=None)
+            sig = FunctionSignature(name=func_name, language='javascript', parameters=parameters, return_type='any', scope='global', callable=None, doc=None, metadata={'code': code})
             registry.register(sig, scope='global')
 
 def _parse_js_params(params_str):
