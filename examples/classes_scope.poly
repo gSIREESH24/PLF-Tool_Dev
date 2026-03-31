@@ -1,0 +1,43 @@
+global {
+    class Product {
+        string name
+        float price
+    }
+
+    python {
+        global_product = Product("Laptop", 1200.50)
+        export("global_product", global_product)
+    }
+}
+
+python {
+    local_product = Product("Mouse", 25.99)
+    print(global_product['name'])
+    print(local_product.name)
+}
+
+javascript {
+    let local_product1 = new Product("Keyboard", 45.00);
+    console.log(global_product.name);
+    console.log(local_product1.name);
+}
+
+cpp {
+    #include <iostream>
+    #include <string>
+
+    int main() {
+        Product local_product2("Monitor", 300.00);
+        std::cout << local_product2.name << std::endl;
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            Product local_product3 = new Product("Desk", 150.00f);
+            System.out.println(local_product3.name);
+        }
+    }
+}

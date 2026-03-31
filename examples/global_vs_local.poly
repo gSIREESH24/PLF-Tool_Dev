@@ -1,87 +1,53 @@
 global {
-    python {
-        def add(a, b):
-            return a + b
-        
-        def subtract(a, b):
-            return a - b
-        
-        def greet(name):
-            return f"Hello, {name}!"
-    }
-    javascript {
-        function multiply(a, b) {
-            return a * b;
-        }
-        
-        function divide(a, b) {
-            return b !== 0 ? a / b : 0;
-        }
+    class Employee {
+        string name;
+        int id;
+        string department;
     }
 
-    max_value = 100
-    min_value = 0
+    python {
+        global_emp = Employee("Alice", 101, "Engineering")
+        
+        export("global_emp", global_emp)
+    }
 }
+
 python {
-    def square(x):
-        return x * x
+    print("--- From Python ---")
+    print(f"Global Employee: {global_emp['name']}, Dept: {global_emp['department']}")
     
-    print("=== Python Block ===")
-    print(add(10,30))
-    print(f"Global add(10, 20) = {add(10, 20)}")
-    print(f"Global subtract(50, 20) = {subtract(50, 20)}")
-    print(f"Global greet('World') = {greet('World')}")
-    
-    print(f"Local square(7) = {square(7)}")
-    
-    print(f"Global max_value = {max_value}")
+    local_python_emp = Employee("Bob", 202, "HR")
+    print(f"Local Python Employee: {local_python_emp.name}, Dept: {local_python_emp.department}")
 }
 
 javascript {
-    function power(base, exp) {
-        return Math.pow(base, exp);
-    }
+    console.log("--- From JavaScript ---");
+    console.log("Global Employee: " + global_emp.name + ", Dept: " + global_emp.department);
     
-    // Use local function
-    console.log("\n=== JavaScript Block ===");
-    console.log("Local multiply (5 * 6) = " + (5 * 6));
-    console.log("Local divide (20 / 4) = " + (20 / 4));
-    console.log("Local power(2, 3) = " + power(2, 3));
+    let local_js_emp = new Employee("Charlie", 303, "Marketing");
+    console.log("Local JS Employee: " + local_js_emp.name + ", Dept: " + local_js_emp.department);
 }
 
-c {
-    #include <stdio.h>
-    
-    int modulo(int a, int b) {
-        return b != 0 ? a % b : 0;
-    }
-    
+cpp {
+    #include <iostream>
+    #include <string>
+
     int main() {
-        printf("\n=== C Block ===\n");
+        std::cout << "--- From C++ ---" << std::endl;
         
-        printf("Local modulo(17, 5) = %d\n", modulo(17, 5));
-        printf("Local addition: 10 + 15 = %d\n", 10 + 15);
-        
+        Employee local_cpp_emp("David", 404, "Design");
+        std::cout << "Local C++ Employee: " << local_cpp_emp.name << ", Dept: " << local_cpp_emp.department << std::endl;
         return 0;
     }
 }
 
-python {
-    print("\n=== Summary: What Functions Can Be Called? ===")
-    
-    print("\nGlobal Functions (accessible everywhere):")
-    print(f"  Python: add(), subtract(), greet()")
-    print(f"  JavaScript: multiply(), divide()")
-    
-    print("\nLocal Functions (language-specific):")
-    print(f"  Python-only: square()")
-    print(f"  JavaScript-only: power()")
-    print(f"  C-only: modulo()")
-    
-    print("\nGlobal Variables:")
-    print(f"  max_value = {max_value}")
-    print(f"  min_value = {min_value}")
-    
-    print("\n[OK] Global functions defined in global block work everywhere!")
-    print("[NO] Local functions stay in their own language")
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("--- From Java ---");
+            
+            Employee local_java_emp = new Employee("Eve", 505, "Sales");
+            System.out.println("Local Java Employee: " + local_java_emp.name + ", Dept: " + local_java_emp.department);
+        }
+    }
 }

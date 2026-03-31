@@ -1,0 +1,51 @@
+global {
+    python {
+        def global_greet(name):
+            return "Hello from Global Python, " + name
+            
+        def global_compute(x, y):
+            return x * y + 10
+    }
+}
+
+python {
+    def local_greet(name):
+        return "Hello from Local Python, " + name
+        
+    print(global_greet("Alice"))
+    print(local_greet("Bob"))
+}
+
+javascript {
+    function local_js_compute(a, b) {
+        return a + b;
+    }
+    
+    console.log("Local JS compute: " + local_js_compute(10, 5));
+}
+
+cpp {
+    #include <iostream>
+    #include <string>
+
+    std::string local_cpp_greet(std::string name) {
+        return "Hello from Local C++, " + name;
+    }
+
+    int main() {
+        std::cout << local_cpp_greet("David") << std::endl;
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static String localJavaGreet(String name) {
+            return "Hello from Local Java, " + name;
+        }
+
+        public static void main(String[] args) {
+            System.out.println(localJavaGreet("Eve"));
+        }
+    }
+}

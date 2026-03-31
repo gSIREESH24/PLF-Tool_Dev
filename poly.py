@@ -4,16 +4,12 @@ from core.interpreter import interpret
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: poly file.poly")
+        print('Usage: poly file.poly')
         return
-
     file_path = sys.argv[1]
-
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         source_code = f.read()
-
     program = parse(source_code)
     interpret(program)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
