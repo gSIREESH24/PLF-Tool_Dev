@@ -9,19 +9,129 @@ def run(code, context=None, registry=None, is_global=False):
     wrapper_code = ''
     if registry and (not is_global):
         wrapper_code = _generate_cpp_wrappers(registry)
-    enhanced_code = '#include <string>\n#include <vector>\n#include <map>\n' + wrapper_code + '\n'
+    enhanced_code = '#include <iostream>\n#include <string>\n#include <vector>\n#include <map>\n#include <sstream>\n' + wrapper_code + '\n'
+    
+    # Add C++ export helper function
+    enhanced_code += '''
+// ============================================================
+// POLYGLOT EXPORT FRAMEWORK - C++
+// Unified export mechanism for inter-language communication
+// Usage: export_cpp("variable_name", value)
+// ============================================================
+
+#include <iomanip>
+
+// SFINAE helper to check if type has to_json() method
+template<typename T>
+class has_to_json {
+    typedef char one;
+    typedef long two;
+    
+    template<typename C>
+    static one test(decltype(&C::to_json));
+    
+    template<typename C>
+    static two test(...);
+public:
+    static const bool value = sizeof(test<T>(0)) == sizeof(one);
+};
+
+// Base template for types WITHOUT to_json()
+template<typename T, bool has_json = has_to_json<T>::value>
+struct export_helper {
+    static void export_value(const std::string& name, const T& value) {
+        std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+    }
+};
+
+// Specialization for types WITH to_json()
+template<typename T>
+struct export_helper<T, true> {
+    static void export_value(const std::string& name, const T& value) {
+        std::cerr << "POLY_EXPORT:" << name << "=" << value.to_json() << std::endl;
+    }
+};
+
+// Generic export template
+template<typename T>
+void export_value(const std::string& name, const T& value) {
+    export_helper<T>::export_value(name, value);
+}
+
+// Specialized for vectors
+template<>
+void export_value<std::vector<double>>(const std::string& name, const std::vector<double>& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=[";
+    for(size_t i = 0; i < value.size(); i++) {
+        if(i > 0) std::cerr << ",";
+        std::cerr << value[i];
+    }
+    std::cerr << "]" << std::endl;
+}
+
+// Specialized for double
+template<>
+void export_value<double>(const std::string& name, const double& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+}
+
+// Specialized for int
+template<>
+void export_value<int>(const std::string& name, const int& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+}
+
+// Alias - use export_cpp() in your code
+template<typename T>
+void export_cpp(const std::string& name, const T& value) {
+    export_value(name, value);
+}
+
+// For convenience
+#define EXPORT_VAR(name, value) export_cpp(#name, value)
+\n'''
+
     if context:
         from global_ns.marshalling import Marshaller
+        from core.polyobj import PolyObject
         for key, value in context.all().items():
-            if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': continue
+            if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': 
+                continue
             try:
-                if isinstance(value, bool): cpp_type = "bool"; cpp_val = "true" if value else "false"
-                elif isinstance(value, int): cpp_type = "int"; cpp_val = value
-                elif isinstance(value, float): cpp_type = "float"; cpp_val = value
-                elif isinstance(value, str): cpp_type = "std::string"; cpp_val = f'"{value}"'
-                else: continue
-                enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
-            except Exception:
+                # Handle PolyObject by converting to dict
+                if isinstance(value, PolyObject):
+                    value = value.to_dict()
+                
+                if isinstance(value, bool): 
+                    cpp_type = "bool"
+                    cpp_val = "true" if value else "false"
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, int): 
+                    cpp_type = "int"
+                    cpp_val = value
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, float): 
+                    cpp_type = "float"
+                    cpp_val = value
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, str): 
+                    cpp_type = "std::string"
+                    cpp_val = f'"{value}"'
+                    enhanced_code += f'{cpp_type} {key} = {cpp_val};\n'
+                elif isinstance(value, dict):
+                    # Skip dict objects (class instances) - they'll be handled as class definitions
+                    pass
+                elif isinstance(value, (list, tuple)):
+                    # Convert Python list to C++ vector
+                    if value and isinstance(value[0], (int, float)):
+                        cpp_type = "std::vector<double>"
+                        elements = ', '.join(str(float(v)) for v in value)
+                        enhanced_code += f"{cpp_type} {key} = {{{elements}}};\n"
+                    elif value and isinstance(value[0], str):
+                        cpp_type = "std::vector<std::string>"
+                        elements = ', '.join(f'"{v}"' for v in value)
+                        enhanced_code += f'{cpp_type} {key} = {{{elements}}};\n'
+            except Exception as e:
                 pass
     try:
         from core.class_registry import get_class_registry, generate_cpp_class
@@ -30,7 +140,12 @@ def run(code, context=None, registry=None, is_global=False):
             enhanced_code += generate_cpp_class(cls) + '\n'
     except Exception:
         pass
-    enhanced_code += code
+    
+    # For global scope (class definitions), wrap code in main()
+    if is_global:
+        enhanced_code += f'\nint main() {{\n{code}\n    return 0;\n}}'
+    else:
+        enhanced_code += code
     with tempfile.NamedTemporaryFile(suffix='.cpp', delete=False) as cpp_file:
         cpp_file.write(enhanced_code.encode())
         cpp_file_name = cpp_file.name
@@ -44,7 +159,13 @@ def run(code, context=None, registry=None, is_global=False):
         if run_result.stdout:
             print(run_result.stdout, end='')
         if run_result.stderr:
-            print('C++ Error:', run_result.stderr)
+            # Parse POLY_EXPORT markers from stderr
+            _parse_cpp_exports(run_result.stderr, context)
+            # Print remaining stderr (non-export output)
+            for line in run_result.stderr.split('\n'):
+                if not line.startswith('POLY_EXPORT:'):
+                    if line.strip():
+                        print(line)
     except FileNotFoundError:
         print('Warning: G++ not found. Skipping C++ execution.')
     except subprocess.TimeoutExpired:
@@ -130,3 +251,43 @@ def _parse_single_cpp_param(param_str):
     if not type_hint:
         type_hint = 'auto'
     return Parameter(name=name, type_hint=type_hint, default=default)
+
+def _parse_cpp_exports(stderr_output, context):
+    """Parse POLY_EXPORT markers from C++ stderr output and update context"""
+    from core.polyobj import PolyObject
+    for line in stderr_output.split('\n'):
+        if line.startswith('POLY_EXPORT:'):
+            try:
+                export_data = line[len('POLY_EXPORT:'):]
+                if '=' in export_data:
+                    name, value_str = export_data.split('=', 1)
+                    name = name.strip()
+                    value_str = value_str.strip()
+                    
+                    # Parse value
+                    if value_str.startswith('[') and value_str.endswith(']'):
+                        # It's a vector/list
+                        inner = value_str[1:-1]
+                        if inner:
+                            values = [float(x.strip()) for x in inner.split(',')]
+                            context.set(name, values)
+                    elif value_str.startswith('{') and value_str.endswith('}'):
+                        # It's a JSON object - parse it
+                        try:
+                            obj = json.loads(value_str)
+                            # Wrap in PolyObject for both dict and attribute access
+                            context.set(name, PolyObject(obj))
+                        except json.JSONDecodeError:
+                            # If JSON parsing fails, store as string
+                            context.set(name, value_str)
+                    else:
+                        # Try to parse as number or string
+                        try:
+                            value = float(value_str)
+                            if value == int(value):
+                                value = int(value)
+                            context.set(name, value)
+                        except ValueError:
+                            context.set(name, value_str)
+            except Exception as e:
+                pass

@@ -1,0 +1,134 @@
+global {
+    python {
+        # Global data
+        dataset = [2.5, 3.7, 5.2, 4.1, 6.8]
+        operation_log = []
+    }
+}
+
+python {
+    print("="*70)
+    print("MULTILINGUAL DATA PIPELINE - Python Stage 1")
+    print("="*70)
+    
+    print(f"Input dataset: {dataset}")
+    print(f"Dataset size: {len(dataset)}")
+    
+    avg = sum(dataset) / len(dataset)
+    print(f"Python calculated average: {avg:.4f}")
+    
+    export("avg_value", avg)
+    export("data_points", dataset)
+    print("[PYTHON] Data exported for C++")
+}
+
+cpp {
+    #include <iostream>
+    #include <iomanip>
+    #include <cmath>
+    using namespace std;
+
+    int main() {
+        cout << "\nC++: Received data - " << data_points.size() << " points" << endl;
+        cout << "C++: Average from Python = " << avg_value << endl;
+        
+        double variance = 0;
+        for(size_t i = 0; i < data_points.size(); i++) {
+            variance += pow(data_points[i] - avg_value, 2);
+        }
+        variance /= data_points.size();
+        
+        double std_dev = sqrt(variance);
+        cout << "C++: Calculated standard deviation = " << fixed << setprecision(4) << std_dev << endl;
+        
+        export_cpp("std_deviation", std_dev);
+        export_cpp("variance", variance);
+        
+        return 0;
+    }
+}
+
+javascript {
+    console.log("\nJavaScript: Processing results from C++");
+    console.log("Data points received: " + data_points);
+    console.log("Average (Python): " + avg_value);
+    console.log("Std Dev (C++): " + std_deviation);
+    console.log("Variance (C++): " + variance);
+    
+    let z_scores = [];
+    for (let i = 0; i < data_points.length; i++) {
+        let z = (data_points[i] - avg_value) / std_deviation;
+        z_scores.push(z);
+    }
+    
+    console.log("Z-scores calculated: " + z_scores.length + " values");
+    export_js("z_scores", z_scores);
+    console.log("[JS] Z-scores exported");
+}
+
+java {
+    public static void analyzeZScores() {
+        System.out.println("\nJava: Receiving Z-scores from JavaScript");
+        System.out.println("Z-scores list size: " + z_scores.size());
+        
+        double max_z = -Double.MAX_VALUE;
+        double min_z = Double.MAX_VALUE;
+        
+        for (Double z : z_scores) {
+            if (z > max_z) max_z = z;
+            if (z < min_z) min_z = z;
+        }
+        
+        System.out.println("Max Z-score: " + String.format("%.4f", max_z));
+        System.out.println("Min Z-score: " + String.format("%.4f", min_z));
+        System.out.println("Z-score range: " + String.format("%.4f", max_z - min_z));
+        
+        export_java("max_zscore", max_z);
+        export_java("min_zscore", min_z);
+        export_java("z_range", max_z - min_z);
+        System.out.println("[JAVA] Statistics exported");
+    }
+    
+    static {
+        analyzeZScores();
+    }
+}
+
+c {
+    #include <stdio.h>
+    #include <math.h>
+
+    int main() {
+        printf("\nC: Final validation stage\n");
+        printf("Max Z-score from Java: %.4f\n", max_zscore);
+        printf("Min Z-score from Java: %.4f\n", min_zscore);
+        printf("Z-score range from Java: %.4f\n", z_range);
+        
+        double quality_score = 100.0 - (z_range * 5.0);
+        if (quality_score < 0) quality_score = 0;
+        
+        printf("Data quality score: %.2f%%\n", quality_score);
+        EXPORT_DOUBLE("quality_score", quality_score);
+        printf("[C] Quality assessment exported\n");
+        
+        return 0;
+    }
+}
+
+python {
+    print("\n" + "="*70)
+    print("FINAL RESULTS - Back to Python")
+    print("="*70)
+    print(f"\nOriginal dataset: {data_points}")
+    print(f"Dataset statistics:")
+    print(f"  - Average (Python): {avg_value:.4f}")
+    print(f"  - Std Dev (C++): {std_deviation:.4f}")
+    print(f"  - Variance (C++): {variance:.4f}")
+    print(f"  - Max Z-score (Java): {max_zscore:.4f}")
+    print(f"  - Min Z-score (Java): {min_zscore:.4f}")
+    print(f"  - Z-range (Java): {z_range:.4f}")
+    print(f"  - Quality Score (C): {quality_score:.2f}%")
+    print("="*70)
+    print("[PIPELINE] COMPLETE - All language boundaries crossed successfully!")
+    print("="*70)
+}

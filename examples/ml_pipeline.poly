@@ -1,0 +1,83 @@
+global {
+    python {
+        raw_data = [
+            [1, 2],
+            [2, 4],
+            [3, 6],
+            [4, 8],
+            [5, 10]
+        ]
+    }
+}
+
+python {
+    X = []
+    Y = []
+
+    for row in raw_data:
+        X.append(row[0])
+        Y.append(row[1])
+
+    max_x = max(X)
+    max_y = max(Y)
+
+    X_norm = [x / max_x for x in X]
+    Y_norm = [y / max_y for y in Y]
+
+    export("X", X_norm)
+    export("Y", Y_norm)
+
+    print("Python: Data preprocessing completed")
+    print(f"X (normalized): {X_norm}")
+    print(f"Y (normalized): {Y_norm}")
+}
+
+cpp {
+    #include <iostream>
+    #include <cmath>
+    using namespace std;
+
+    int main() {
+        int n = X.size();
+        double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
+
+        for(int i = 0; i < n; i++) {
+            sum_x += X[i];
+            sum_y += Y[i];
+            sum_xy += X[i] * Y[i];
+            sum_x2 += X[i] * X[i];
+        }
+
+        double denominator = (n * sum_x2 - sum_x * sum_x);
+        if(denominator == 0) {
+            cerr << "Error: Invalid data for linear regression" << endl;
+            return 1;
+        }
+
+        double w = (n * sum_xy - sum_x * sum_y) / denominator;
+
+        cerr << "C++: Linear regression completed" << endl;
+        cerr << "C++: Learned weight = " << w << endl;
+        
+        export_cpp("weight", w);
+        
+        return 0;
+    }
+}
+
+python {
+    print("\n" + "="*60)
+    print("FINAL RESULTS - CROSS-LANGUAGE PIPELINE")
+    print("="*60)
+    
+    print(f"\nModel learned weight (from C++): {weight}")
+    print("\nPredictions using C++ model:")
+    print("X_norm -> Expected Y -> Predicted Y")
+    
+    for i in range(len(X)):
+        pred = weight * X[i]
+        error = abs(Y[i] - pred)
+        print(f"{X[i]:.4f}   ->  {Y[i]:.4f}      ->  {pred:.4f}  (error: {error:.6f})")
+    
+    print("="*60)
+}

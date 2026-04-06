@@ -1,0 +1,146 @@
+-- All Languages Export Example
+-- Demonstrates export functionality across Python, C++, JavaScript, Java, and C
+
+python {
+    print("="*70)
+    print("PYTHON EXPORTS")
+    print("="*70)
+    
+    # Export primitives, lists, and objects
+    py_number = 42
+    py_list = [1.5, 2.5, 3.5, 4.5, 5.5]
+    py_string = "exported_from_python"
+    
+    export("py_number", py_number)
+    export("py_list", py_list)
+    export("py_string", py_string)
+    
+    print(f"[OK] Exported: py_number={py_number}")
+    print(f"[OK] Exported: py_list={py_list}")
+    print(f"[OK] Exported: py_string={py_string}")
+}
+
+cpp {
+    #include <iostream>
+    using namespace std;
+    
+    int main() {
+        cout << "\n" << string(70, '=') << endl;
+        cout << "C++ EXPORTS" << endl;
+        cout << string(70, '=') << endl;
+        
+        double cpp_pi = 3.14159;
+        int cpp_count = 100;
+        std::string cpp_message = "exported_from_cpp";
+        
+        export_cpp("cpp_pi", cpp_pi);
+        export_cpp("cpp_count", cpp_count);
+        export_cpp("cpp_message", cpp_message);
+        
+        cout << "[OK] Exported: cpp_pi=" << cpp_pi << endl;
+        cout << "[OK] Exported: cpp_count=" << cpp_count << endl;
+        cout << "[OK] Exported: cpp_message=" << cpp_message << endl;
+        
+        return 0;
+    }
+}
+
+javascript {
+    console.log("\n" + "=".repeat(70));
+    console.log("JAVASCRIPT EXPORTS");
+    console.log("=".repeat(70));
+    
+    let js_object = { name: "JavaScript", version: "ES6" };
+    let js_array = [10, 20, 30, 40, 50];
+    let js_text = "exported_from_javascript";
+    
+    export_js("js_object", js_object);
+    export_js("js_array", js_array);
+    export_js("js_text", js_text);
+    
+    console.log("[OK] Exported: js_object=" + JSON.stringify(js_object));
+    console.log("[OK] Exported: js_array=" + JSON.stringify(js_array));
+    console.log("[OK] Exported: js_text=" + js_text);
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("\n" + "=".repeat(70));
+            System.out.println("JAVA EXPORTS");
+            System.out.println("=".repeat(70));
+            
+            double java_value = 99.9;
+            int java_count = 256;
+            String java_label = "exported_from_java";
+            
+            export_java("java_value", java_value);
+            export_java("java_count", java_count);
+            export_java("java_label", java_label);
+            
+            System.out.println("[OK] Exported: java_value=" + java_value);
+            System.out.println("[OK] Exported: java_count=" + java_count);
+            System.out.println("[OK] Exported: java_label=" + java_label);
+        }
+    }
+}
+
+c {
+    #include <stdio.h>
+    
+    int main() {
+        printf("\n");
+        printf("======================================================================\n");
+        printf("C EXPORTS\n");
+        printf("======================================================================\n");
+        
+        double c_value = 2.71828;
+        int c_flag = 1;
+        char* c_info = "exported_from_c";
+        
+        EXPORT_DOUBLE("c_value", c_value);
+        EXPORT_INT("c_flag", c_flag);
+        EXPORT_STRING("c_info", c_info);
+        
+        printf("[OK] Exported: c_value=%f\n", c_value);
+        printf("[OK] Exported: c_flag=%d\n", c_flag);
+        printf("[OK] Exported: c_info=%s\n", c_info);
+        
+        return 0;
+    }
+}
+
+python {
+    print("\n" + "="*70)
+    print("VERIFYING ALL EXPORTS IN PYTHON")
+    print("="*70)
+    
+    print("\n[Python Exports]")
+    print(f"  py_number = {py_number}")
+    print(f"  py_list = {py_list}")
+    print(f"  py_string = {py_string}")
+    
+    print("\n[C++ Exports]")
+    print(f"  cpp_pi = {cpp_pi}")
+    print(f"  cpp_count = {cpp_count}")
+    print(f"  cpp_message = {cpp_message}")
+    
+    print("\n[JavaScript Exports]")
+    print(f"  js_text = {js_text}")
+    print(f"  js_array = {js_array}")
+    print(f"  js_object = {js_object}")
+    
+    print("\n[Java Exports]")
+    print(f"  java_value = {java_value}")
+    print(f"  java_count = {java_count}")
+    print(f"  java_label = {java_label}")
+    
+    print("\n[C Exports]")
+    print(f"  c_value = {c_value}")
+    print(f"  c_flag = {c_flag}")
+    print(f"  c_info = {c_info}")
+    
+    print("\n" + "="*70)
+    print("[SUCCESS] ALL EXPORTS SUCCESSFULLY IMPORTED AND ACCESSIBLE!")
+    print("="*70)
+}

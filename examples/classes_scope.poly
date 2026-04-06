@@ -3,22 +3,40 @@ global {
         string name
         float price
     }
-
+    x=20
+    z=10
     python {
         global_product = Product("Laptop", 1200.50)
-        export("global_product", global_product)
+    }
+    cpp {
+      #include <iostream>
+      Product gp("Mac", 500.00);
+      export_cpp("gp", gp);
     }
 }
 
 python {
+    y=10
+    print(z)
+    z+=20
+    export("y",y)
     local_product = Product("Mouse", 25.99)
-    print(global_product['name'])
+    export("local_product",local_product)
+    global_product=Product("Kite",45.92)
+    print(gp.name)
+    print(global_product.name)
     print(local_product.name)
 }
 
 javascript {
+    y+=10
+    console.log(y);
+    console.log(z);
     let local_product1 = new Product("Keyboard", 45.00);
     console.log(global_product.name);
+    console.log(local_product.name);
+    local_product=new Product("Vicky",46.32);
+    console.log(local_product.name);
     console.log(local_product1.name);
 }
 
@@ -29,6 +47,10 @@ cpp {
     int main() {
         Product local_product2("Monitor", 300.00);
         std::cout << local_product2.name << std::endl;
+        std::cout << local_product.name << std::endl;
+        std::cout <<gp.name<< std::endl;
+        std::cout << y<< std::endl;
+        std::cout << x<< std::endl;
         return 0;
     }
 }
