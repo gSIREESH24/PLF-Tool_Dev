@@ -6,51 +6,171 @@ import json
 from core.function_signature import FunctionSignature, Parameter
 
 def run(code, context=None, registry=None, is_global=False):
-
-    # Generate wrapper code for registered functions if in local scope
-    wrapper_code = ""
-    if registry and not is_global:
+    wrapper_code = ''
+    if registry and (not is_global):
         wrapper_code = _generate_cpp_wrappers(registry)
+    enhanced_code = '#include <iostream>\n#include <string>\n#include <vector>\n#include <map>\n#include <sstream>\n' + wrapper_code + '\n'
+    
+    # Add C++ export helper function
+    enhanced_code += '''
+// ============================================================
+// POLYGLOT EXPORT FRAMEWORK - C++
+// Unified export mechanism for inter-language communication
+// Usage: export_cpp("variable_name", value)
+// ============================================================
 
-    # Inject wrapper code into the C++ code
-    enhanced_code = wrapper_code + "\n" + code
+#include <iomanip>
 
-    with tempfile.NamedTemporaryFile(suffix=".cpp", delete=False) as cpp_file:
+// SFINAE helper to check if type has to_json() method
+template<typename T>
+class has_to_json {
+    typedef char one;
+    typedef long two;
+    
+    template<typename C>
+    static one test(decltype(&C::to_json));
+    
+    template<typename C>
+    static two test(...);
+public:
+    static const bool value = sizeof(test<T>(0)) == sizeof(one);
+};
+
+// Base template for types WITHOUT to_json()
+template<typename T, bool has_json = has_to_json<T>::value>
+struct export_helper {
+    static void export_value(const std::string& name, const T& value) {
+        std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+    }
+};
+
+// Specialization for types WITH to_json()
+template<typename T>
+struct export_helper<T, true> {
+    static void export_value(const std::string& name, const T& value) {
+        std::cerr << "POLY_EXPORT:" << name << "=" << value.to_json() << std::endl;
+    }
+};
+
+// Generic export template
+template<typename T>
+void export_value(const std::string& name, const T& value) {
+    export_helper<T>::export_value(name, value);
+}
+
+// Specialized for vectors
+template<>
+void export_value<std::vector<double>>(const std::string& name, const std::vector<double>& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=[";
+    for(size_t i = 0; i < value.size(); i++) {
+        if(i > 0) std::cerr << ",";
+        std::cerr << value[i];
+    }
+    std::cerr << "]" << std::endl;
+}
+
+// Specialized for double
+template<>
+void export_value<double>(const std::string& name, const double& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+}
+
+// Specialized for int
+template<>
+void export_value<int>(const std::string& name, const int& value) {
+    std::cerr << "POLY_EXPORT:" << name << "=" << value << std::endl;
+}
+
+// Alias - use export_cpp() in your code
+template<typename T>
+void export_cpp(const std::string& name, const T& value) {
+    export_value(name, value);
+}
+
+// For convenience
+#define EXPORT_VAR(name, value) export_cpp(#name, value)
+\n'''
+
+    if context:
+        from global_ns.marshalling import Marshaller
+        from core.polyobj import PolyObject
+        for key, value in context.all().items():
+            if key.startswith('__') or hasattr(value, '__call__') or type(value).__name__ == 'type': 
+                continue
+            try:
+                # Handle PolyObject by converting to dict
+                if isinstance(value, PolyObject):
+                    value = value.to_dict()
+                
+                if isinstance(value, bool): 
+                    cpp_type = "bool"
+                    cpp_val = "true" if value else "false"
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, int): 
+                    cpp_type = "int"
+                    cpp_val = value
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, float): 
+                    cpp_type = "float"
+                    cpp_val = value
+                    enhanced_code += f"{cpp_type} {key} = {cpp_val};\n"
+                elif isinstance(value, str): 
+                    cpp_type = "std::string"
+                    cpp_val = f'"{value}"'
+                    enhanced_code += f'{cpp_type} {key} = {cpp_val};\n'
+                elif isinstance(value, dict):
+                    # Skip dict objects (class instances) - they'll be handled as class definitions
+                    pass
+                elif isinstance(value, (list, tuple)):
+                    # Convert Python list to C++ vector
+                    if value and isinstance(value[0], (int, float)):
+                        cpp_type = "std::vector<double>"
+                        elements = ', '.join(str(float(v)) for v in value)
+                        enhanced_code += f"{cpp_type} {key} = {{{elements}}};\n"
+                    elif value and isinstance(value[0], str):
+                        cpp_type = "std::vector<std::string>"
+                        elements = ', '.join(f'"{v}"' for v in value)
+                        enhanced_code += f'{cpp_type} {key} = {{{elements}}};\n'
+            except Exception as e:
+                pass
+    try:
+        from core.class_registry import get_class_registry, generate_cpp_class
+        cls_reg = get_class_registry()
+        for cls in cls_reg.get_all():
+            enhanced_code += generate_cpp_class(cls) + '\n'
+    except Exception:
+        pass
+    
+    # For global scope (class definitions), wrap code in main()
+    if is_global:
+        enhanced_code += f'\nint main() {{\n{code}\n    return 0;\n}}'
+    else:
+        enhanced_code += code
+    with tempfile.NamedTemporaryFile(suffix='.cpp', delete=False) as cpp_file:
         cpp_file.write(enhanced_code.encode())
         cpp_file_name = cpp_file.name
-
-    exe_file = cpp_file_name.replace(".cpp", ".exe") if os.name == 'nt' else cpp_file_name.replace(".cpp", "")
-
+    exe_file = cpp_file_name.replace('.cpp', '.exe') if os.name == 'nt' else cpp_file_name.replace('.cpp', '')
     try:
-
-        compile_result = subprocess.run(
-            ["g++", cpp_file_name, "-o", exe_file],
-            capture_output=True,
-            text=True
-        )
-
+        compile_result = subprocess.run(['g++', cpp_file_name, '-o', exe_file], capture_output=True, text=True)
         if compile_result.returncode != 0:
-            print(f"C++ Compilation error: {compile_result.stderr}")
+            print(f'C++ Compilation error: {compile_result.stderr}')
             return
-
-        run_result = subprocess.run(
-            [exe_file],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
+        run_result = subprocess.run([exe_file], capture_output=True, text=True, timeout=10)
         if run_result.stdout:
-            print(run_result.stdout, end="")
+            print(run_result.stdout, end='')
         if run_result.stderr:
-            print("C++ Error:", run_result.stderr)
-
+            # Parse POLY_EXPORT markers from stderr
+            _parse_cpp_exports(run_result.stderr, context)
+            # Print remaining stderr (non-export output)
+            for line in run_result.stderr.split('\n'):
+                if not line.startswith('POLY_EXPORT:'):
+                    if line.strip():
+                        print(line)
     except FileNotFoundError:
-        print("Warning: G++ not found. Skipping C++ execution.")
+        print('Warning: G++ not found. Skipping C++ execution.')
     except subprocess.TimeoutExpired:
-        print("Error: C++ execution timeout")
+        print('Error: C++ execution timeout')
     finally:
-
         try:
             if os.path.exists(cpp_file_name):
                 os.remove(cpp_file_name)
@@ -58,102 +178,64 @@ def run(code, context=None, registry=None, is_global=False):
                 os.remove(exe_file)
         except:
             pass
-
     if registry and is_global:
         _extract_and_register_functions(code, registry, context)
 
 def _generate_cpp_wrappers(registry):
-    wrappers = "#include <iostream>\n"
-    wrappers += "// Auto-generated function wrappers\n\n"
-    
-    # Create wrappers for registered Python functions
+    wrappers = '#include <iostream>\n'
+    wrappers += '// Auto-generated function wrappers\n\n'
     python_funcs = registry.global_functions
-    
     for func_name, func_sig in python_funcs.items():
-        if func_sig.language == "python" and func_sig.callable:
-            # Generate a C++ wrapper function
+        if func_sig.language == 'python' and func_sig.callable:
             params = func_sig.parameters
-            param_decls = ", ".join([f"int {p.name}" for p in params]) if params else ""
-            
-            # Create a wrapper that calls the Python function
-            wrapper = f"""
-// Wrapper for Python function: {func_name}
-int {func_name}({param_decls}) {{
-    // This function is available from the registry
-    // Call through the registry at runtime
-    return 0;  // Placeholder
-}}
-"""
+            param_decls = ', '.join([f'int {p.name}' for p in params]) if params else ''
+            wrapper = f'\n\nint {func_name}({param_decls}) {{\n\n\n    return 0;  // Placeholder\n}}\n'
             wrappers += wrapper
-    
     return wrappers
 
 def _extract_and_register_functions(code, registry, context):
-
-    pattern = r'(?:inline\s+)?(\w+(?:<.*?>)?(?:\s*\*)?)?\s+(\w+)\s*\((.*?)\)\s*(?:const)?\s*(?:noexcept)?\s*(?:override)?\s*\{'
-
+    pattern = '(?:inline\\s+)?(\\w+(?:<.*?>)?(?:\\s*\\*)?)?\\s+(\\w+)\\s*\\((.*?)\\)\\s*(?:const)?\\s*(?:noexcept)?\\s*(?:override)?\\s*\\{'
     for match in re.finditer(pattern, code):
-        return_type = match.group(1) or "void"
+        return_type = match.group(1) or 'void'
         func_name = match.group(2)
         params_str = match.group(3)
-
-        if func_name in ("main", "std") or func_name.startswith("~"):
+        if func_name in ('main', 'std') or func_name.startswith('~'):
             continue
-
         parameters = _parse_cpp_params(params_str)
-
-        sig = FunctionSignature(
-            name=func_name,
-            language="cpp",
-            parameters=parameters,
-            return_type=return_type,
-            scope="global",
-            callable=None,
-            doc=None
-        )
-
-        registry.register(sig, scope="global")
+        sig = FunctionSignature(name=func_name, language='cpp', parameters=parameters, return_type=return_type, scope='global', callable=None, doc=None, metadata={'code': code})
+        registry.register(sig, scope='global')
 
 def _parse_cpp_params(params_str):
     parameters = []
-
     if not params_str.strip():
         return parameters
-
     parts = []
-    current = ""
+    current = ''
     depth = 0
-
     for char in params_str:
-        if char in "<([":
+        if char in '<([':
             depth += 1
-        elif char in ">)]}":
+        elif char in '>)]}':
             depth -= 1
-        elif char == "," and depth == 0:
+        elif char == ',' and depth == 0:
             parts.append(current.strip())
-            current = ""
+            current = ''
             continue
-
         current += char
-
     if current.strip():
         parts.append(current.strip())
-
     for part in parts:
         param = _parse_single_cpp_param(part)
         if param:
             parameters.append(param)
-
     return parameters
 
 def _parse_single_cpp_param(param_str):
     param_str = param_str.strip()
-
-    if "=" in param_str:
-        decl, default_str = param_str.split("=", 1)
+    if '=' in param_str:
+        decl, default_str = param_str.split('=', 1)
         decl = decl.strip()
         default_str = default_str.strip()
-
         try:
             default = eval(default_str)
         except:
@@ -161,17 +243,51 @@ def _parse_single_cpp_param(param_str):
     else:
         decl = param_str
         default = None
-
-    name_match = re.search(r'(?:[\s\*&]+)?(\w+)\s*(?:\[\])?$', decl)
-
+    name_match = re.search('(?:[\\s\\*&]+)?(\\w+)\\s*(?:\\[\\])?$', decl)
     if not name_match:
         return None
-
     name = name_match.group(1)
-
     type_hint = decl[:name_match.start()].strip()
-
     if not type_hint:
-        type_hint = "auto"
-
+        type_hint = 'auto'
     return Parameter(name=name, type_hint=type_hint, default=default)
+
+def _parse_cpp_exports(stderr_output, context):
+    """Parse POLY_EXPORT markers from C++ stderr output and update context"""
+    from core.polyobj import PolyObject
+    for line in stderr_output.split('\n'):
+        if line.startswith('POLY_EXPORT:'):
+            try:
+                export_data = line[len('POLY_EXPORT:'):]
+                if '=' in export_data:
+                    name, value_str = export_data.split('=', 1)
+                    name = name.strip()
+                    value_str = value_str.strip()
+                    
+                    # Parse value
+                    if value_str.startswith('[') and value_str.endswith(']'):
+                        # It's a vector/list
+                        inner = value_str[1:-1]
+                        if inner:
+                            values = [float(x.strip()) for x in inner.split(',')]
+                            context.set(name, values)
+                    elif value_str.startswith('{') and value_str.endswith('}'):
+                        # It's a JSON object - parse it
+                        try:
+                            obj = json.loads(value_str)
+                            # Wrap in PolyObject for both dict and attribute access
+                            context.set(name, PolyObject(obj))
+                        except json.JSONDecodeError:
+                            # If JSON parsing fails, store as string
+                            context.set(name, value_str)
+                    else:
+                        # Try to parse as number or string
+                        try:
+                            value = float(value_str)
+                            if value == int(value):
+                                value = int(value)
+                            context.set(name, value)
+                        except ValueError:
+                            context.set(name, value_str)
+            except Exception as e:
+                pass
