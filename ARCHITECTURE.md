@@ -13,14 +13,14 @@ The foundation of PLF is avoiding overly complex language-specific grammars. Ins
 
 ```mermaid
 graph TD
-    A[Source File 'script.poly'] -->|Reads stream| B(Lexer / Tokenizer)
-    B -->|Identifies structure| C{Block Parser}
+    A["Source File script.poly"] -->|"Reads stream"| B("Lexer / Tokenizer")
+    B -->|"Identifies structure"| C{"Block Parser"}
     
-    C -->|Registers 'global {'| D[Global Definition Node]
-    C -->|Registers 'python {'| E[Python Execution Node]
-    C -->|Registers 'java {'| F[Java Execution Node]
+    C -->|"Registers global block"| D["Global Definition Node"]
+    C -->|"Registers python block"| E["Python Execution Node"]
+    C -->|"Registers java block"| F["Java Execution Node"]
     
-    D --> G(Interpreter Processing Queue)
+    D --> G("Interpreter Processing Queue")
     E --> G
     F --> G
 ```
@@ -34,13 +34,13 @@ Instead of microservices sending HTTP requests, all language runners operate on 
 
 ```mermaid
 graph LR
-    A[Python Runner] -->|export('matrix', [[1,2]])| B((Context Engine Data Store))
+    A["Python Runner"] -->|"exports matrix list"| B(("Context Engine Data Store"))
     
-    C[JavaScript Runner] -->|Boots up, requests context| B
-    B -->|Translates to: let matrix = [[1,2]];| C
+    C["JavaScript Runner"] -->|"Requests context"| B
+    B -->|"Translates to native JS array"| C
     
-    D[C++ Runner] -->|Boots up, requests context| B
-    B -->|Writes '#include <vector>' and native vector mapping| D
+    D["C++ Runner"] -->|"Requests context"| B
+    B -->|"Generates C++ vectors"| D
 ```
 
 ---
@@ -52,12 +52,12 @@ The Class Registry creates the sensation of true Universal OOP development. A cl
 
 ```mermaid
 graph TD
-    A[Global PLF Definition: class Profile { string name; int age }] -->|Analyzed by| B(Core Class Registry Engine)
+    A["Global PLF Definition: class Profile"] -->|"Analyzed by"| B("Core Class Registry Engine")
     
-    B -->|Auto-Generates| C[Python Code: class Profile: def __init__...]
-    B -->|Auto-Generates| D[JavaScript Code: class Profile { constructor()... }]
-    B -->|Auto-Generates| E[Java Code: public class Profile { ... }]
-    B -->|Auto-Generates| F[C++ Code: struct Profile { std::string name; ... }]
+    B -->|"Auto-Generates"| C["Python: class Profile"]
+    B -->|"Auto-Generates"| D["JavaScript: class Profile"]
+    B -->|"Auto-Generates"| E["Java: public class Profile"]
+    B -->|"Auto-Generates"| F["C++: struct Profile"]
 ```
 
 ---
@@ -131,18 +131,18 @@ Type boundaries are incredibly rigid. Python `dicts` don't translate natively to
 
 ```mermaid
 graph TD
-    A[Data Dumped to Context <br> Python `[1, "hello", {"key": "value"}]`] --> B(Marshalling Type Iterator)
+    A["Python dict/list dumped to Context"] --> B("Marshalling Type Iterator")
     
-    B --> C{Discover Underlying Type Trees}
-    C -->|Detects Array| D[Translate List Container]
-    C -->|Detects String| E[Translate Native Char Encoding]
-    C -->|Detects Map| F[Translate Hash/Dict Container]
+    B --> C{"Discover Underlying Type Trees"}
+    C -->|"Detects Array"| D["Translate List Container"]
+    C -->|"Detects String"| E["Translate Native Char Encoding"]
+    C -->|"Detects Map"| F["Translate Hash/Dict Container"]
     
-    D --> G(Reassemble Target Output Code Strings)
+    D --> G("Reassemble Target Output Code Strings")
     E --> G
     F --> G
     
-    G --> H[Render JavaScript ES6: `[1, "hello", {key:"value"}]`]
-    G --> I[Render C++ : `std::vector<std::variant...> = ...`]
-    G --> J[Render Java : `ArrayList<Object> = ...`]
+    G --> H["Render JavaScript ES6 Object"]
+    G --> I["Render C++ std::vector / std::map"]
+    G --> J["Render Java ArrayList"]
 ```
