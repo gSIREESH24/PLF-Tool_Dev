@@ -57,6 +57,21 @@ function export_js(name, value) {
 function export_func(name, value) {
     export_js(name, value);
 }
+
+// poly_export: Phase_2_PLF-style export alias
+function poly_export(name, value) {
+    export_js(name, value);
+}
+
+// get_global: read a bridge value by name (mirrors Python get_global API)
+function get_global(name, defaultValue) {
+    try {
+        var val = eval(name);
+        return (val === undefined) ? (defaultValue !== undefined ? defaultValue : null) : val;
+    } catch(e) {
+        return (defaultValue !== undefined) ? defaultValue : null;
+    }
+}
     '''
     
     registry_interface = ''
@@ -70,6 +85,20 @@ function export_func(name, value) {
             classes_code += generate_js_class(cls) + '\n'
     except Exception:
         pass
+
+    # Strip Python-style # comments (invalid in JS) and rewrite bare export(
+    import re as _re
+    clean_lines = []
+    for line in code.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            clean_lines.append('')   # keep line numbers intact
+        else:
+            clean_lines.append(line)
+    code = '\n'.join(clean_lines)
+    # Rewrite bare export(...) → poly_export(...) to avoid ES module clash
+    code = _re.sub(r'(?<![.\w])export\s*\(', 'poly_export(', code)
+
     full_code = js_vars + export_function + registry_interface + classes_code + code
     try:
         result = subprocess.run(['node', '-e', full_code], capture_output=True, text=True, timeout=10)

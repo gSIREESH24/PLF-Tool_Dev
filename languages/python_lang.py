@@ -4,46 +4,78 @@ from core.function_signature import FunctionSignature, Parameter
 
 def run(code, context, registry=None, is_global=False):
 
+    # ── Bridge helpers ────────────────────────────────────────────────────
+
     def export(name, value):
-        """
-        Export a variable to the polyglot context.
-        Available in all language blocks for inter-language communication.
-        
-        Args:
-            name (str): Variable name to export
-            value: Value to export (primitives, lists, dicts, class instances)
-        
-        For class instances: automatically converts to dict via to_dict()
-        For primitives/lists: stored as-is
-        """
-        from core.polyobj import PolyObject
-        if hasattr(value, 'to_dict'):
-            # Convert class instance to dict
-            value_dict = value.to_dict()
-            # Wrap in PolyObject for both attribute and dict access
-            context.set(name, PolyObject(value_dict))
-        elif isinstance(value, dict):
-            # Wrap plain dicts too
-            context.set(name, PolyObject(value))
-        else:
+        try:
+            from core.polyobj import PolyObject
+            if hasattr(value, 'to_dict'):
+                context.set(name, PolyObject(value.to_dict()))
+            elif isinstance(value, dict) and not isinstance(value, PolyObject):
+                context.set(name, PolyObject(value))
+            else:
+                context.set(name, value)
+        except Exception:
             context.set(name, value)
 
-    def call(func_name, args=None, kwargs=None):
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
+    def export_function(name, func, param_types=None, return_type=None):
+        """Register a Python callable in the bridge function table."""
+        context.export_function(name, func, language="python",
+                                param_types=param_types, return_type=return_type)
+        # Also register in the old registry if present
         if registry:
-            return registry.call(func_name, args, kwargs)
-        else:
-            raise RuntimeError('Function registry not available')
+            try:
+                import inspect, re as _re
+                from core.function_signature import FunctionSignature
+                parameters = _parse_python_params(
+                    str(inspect.signature(func))[1:-1])
+                sig = FunctionSignature(name=name, language='python',
+                                        parameters=parameters,
+                                        return_type=return_type,
+                                        scope='global', callable=func,
+                                        doc=func.__doc__)
+                registry.register(sig, scope='global')
+            except Exception:
+                pass
+
+    def call(func_name, *args):
+        """Call a registered bridge function."""
+        # Try context first (new path), fall back to old registry
+        if context.has_function(func_name):
+            return context.call(func_name, *args)
+        if registry:
+            try:
+                return registry.call(func_name, list(args), {})
+            except Exception:
+                pass
+        raise NameError(f"[Bridge] Function '{func_name}' is not registered.")
+
+    def get_global(name, default=None):
+        v = context.get(name)
+        return default if v is None else v
 
     def get_function(func_name):
+        fn = context.get_function(func_name)
+        if fn:
+            return fn
         if registry:
-            sig = registry.get(func_name)
-            return sig.callable
-        else:
-            raise RuntimeError('Function registry not available')
+            try:
+                sig = registry.get(func_name)
+                return sig.callable
+            except Exception:
+                pass
+        raise NameError(f"[Bridge] Function '{func_name}' not found.")
+
+    def store_object(obj) -> int:
+        return context.store_object(obj)
+
+    def load_object(handle: int):
+        return context.load_object(handle)
+
+    def delete_object(handle: int):
+        context.delete_object(handle)
+
+    # ── Inject class definitions if class registry exists ────────────────
     try:
         from core.class_registry import get_class_registry, generate_python_class
         cls_reg = get_class_registry()
@@ -53,25 +85,48 @@ def run(code, context, registry=None, is_global=False):
         code = classes_code + code
     except Exception:
         pass
+
+    # ── Build execution environment ───────────────────────────────────────
     local_env = context.all().copy()
-    local_env['export'] = export
-    local_env['call'] = call
-    local_env['get_function'] = get_function
+    _helpers = {
+        'export':          export,
+        'export_function': export_function,
+        'call':            call,
+        'get_global':      get_global,
+        'get_function':    get_function,
+        'store_object':    store_object,
+        'load_object':     load_object,
+        'delete_object':   delete_object,
+    }
+    local_env.update(_helpers)
+
     exec(code, local_env)
+
+    # ── Register any defined functions in the old registry ────────────────
     if registry:
-        _extract_and_register_functions(code, local_env, registry, context, is_global=is_global)
-    from core.polyobj import PolyObject
+        _extract_and_register_functions(code, local_env, registry, context,
+                                        is_global=is_global)
+
+    # ── Sync new plain variables back into the bridge ─────────────────────
+    _skip = set(_helpers.keys()) | {'__builtins__'}
+    try:
+        from core.polyobj import PolyObject
+        _polyobj = PolyObject
+    except Exception:
+        _polyobj = None
+
     for key, value in local_env.items():
-        if not key.startswith('__') and key not in ('export', 'call', 'get_function'):
-            if not inspect.isfunction(value) and (not inspect.isclass(value)):
-                if hasattr(value, 'to_dict'):
-                    # Convert class instance to dict wrapped in PolyObject
-                    context.set(key, PolyObject(value.to_dict()))
-                elif isinstance(value, dict) and not isinstance(value, PolyObject):
-                    # Wrap plain dicts in PolyObject
-                    context.set(key, PolyObject(value))
-                else:
-                    context.set(key, value)
+        if key.startswith('__') or key in _skip:
+            continue
+        if inspect.isfunction(value) or inspect.isclass(value):
+            continue
+        if _polyobj and isinstance(value, dict) and not isinstance(value, _polyobj):
+            context.set(key, _polyobj(value))
+        elif _polyobj and hasattr(value, 'to_dict'):
+            context.set(key, _polyobj(value.to_dict()))
+        else:
+            context.set(key, value)
+
 
 def _extract_and_register_functions(code, local_env, registry, context, is_global=False):
     func_pattern = 'def\\s+(\\w+)\\s*\\((.*?)\\)'

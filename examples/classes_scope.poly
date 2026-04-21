@@ -8,11 +8,6 @@ global {
     python {
         global_product = Product("Laptop", 1200.50)
     }
-    cpp {
-      #include <iostream>
-      Product gp("Mac", 500.00);
-      export_cpp("gp", gp);
-    }
 }
 
 python {

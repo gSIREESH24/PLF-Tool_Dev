@@ -1,203 +1,196 @@
 # Poly (PLF-Tool) - The Ultimate Polyglot Framework
 
-Welcome to the Poly Language Framework (PLF) - a revolutionary step forward in true polyglot software engineering. PLF breaks down language barriers, allowing you to execute Python, JavaScript, C++, Java, and C seamlessly in the same source file (`.poly`).
+Welcome to the **Poly Language Framework (PLF)** — a revolutionary paradigm in software engineering. PLF breaks down language barriers, allowing you to execute Python, JavaScript, C++, Java, and C seamlessly in a single source file (`.poly`).
 
-Not only does it allow you to write multiple languages cohesively, but it provides **transparent data bindings**, allowing variables, functions, and deeply-nested Object-Oriented classes to traverse across all these runtime boundaries magically.
-
----
-
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [What Are The Uses of This Project?](#what-are-the-uses-of-this-project)
-3. [Architecture and Design](#architecture-and-design)
-4. [Project Structure](#project-structure)
-5. [Syntax and Core Concepts](#syntax-and-core-concepts)
-6. [Variable and Context Binding](#variable-and-context-binding)
-7. [Cross-Language Functions](#cross-language-functions)
-8. [Global and Local Object-Oriented Programming](#global-and-local-object-oriented-programming)
-9. [Supported Languages Deep Dive](#supported-languages-deep-dive)
-10. [Usage & CLI](#usage--cli)
-11. [Extending PLF](#extending-plf)
+This framework doesn't just run them side-by-side; it provides **transparent data bindings, shared memory bridging, recursive stub routing, and global Object-Oriented proxying**. This means variables, functions, and deeply-nested classes traverse across all language boundaries effortlessly.
 
 ---
 
-## Introduction
-
-Modern technology stacks frequently struggle with integrating disparate ecosystems. You might want the unmatched machine-learning capabilities of Python, the raw asynchronous I/O speed of Node.js (JavaScript), the extreme CPU-bound performance of C++, and the enterprise-level robustness of Java all in one single workflow.
-
-Normally, developers have to set up REST APIs, gRPC, Microservices, or complex message queues like RabbitMQ or Kafka just to exchange a single data structure or orchestrate a multi-language pipeline.
-
-The **Poly Language Framework (PLF)** solves this by introducing `.poly` files. A PLF script coordinates scripts via an advanced, abstracted AST parser, passing execution contexts, serializing objects behind the scenes, and bridging functions natively.
-
----
-
-## What Are The Uses of This Project?
-
-PLF is incredibly powerful and has a wide array of high-value use cases:
-
-*   **Machine Learning + High-Performance Pipelines**: You can do heavy data processing in C++, feed the data immediately into Python to train a TensorFlow model, and then instantly serve the inferences using JavaScript.
-*   **Legacy Code Migration & Modernization**: Interleave legacy C or Java code natively within a new Python orchestrator to slowly replace parts without breaking monolithic workflows or spending millions on an explicit rewrite.
-*   **Prototyping & Rapid Development**: Instead of mocking dependencies across multiple languages or stitching APIs, you can write everything in one script file to prove a full-stack algorithmic concept works.
-*   **Educational Environments**: Teaching a concept like Object-Oriented Programming (OOP) sequentially across Python, Java, JS, and C++ in a single file reduces cognitive load and allows immediate side-by-side comparison for students.
-*   **Automated Testing & Integration**: Perform integration testing natively. You can trigger a C++ backend routine right from the script and instantly assert the database changes using Python within the identical context.
-*   **Algorithm Optimization**: Write an algorithm in Python, port it over block-by-block to C++ or Java within the same file, and instantly compare the execution speed and accuracy of the output natively.
+## 📖 Table of Contents
+1. [What Is This Project? (The "Why")](#what-is-this-project-the-why)
+2. [What We Made: Core Features](#what-we-made-core-features)
+3. [How We Made It: The Architecture](#how-we-made-it-the-architecture)
+4. [Architectural Diagrams (For Beginners)](#architectural-diagrams-for-beginners)
+5. [Syntax and Usage](#syntax-and-usage)
+6. [Supported Languages & Type Mappings](#supported-languages--type-mappings)
+7. [Running The Code](#running-the-code)
 
 ---
 
-## Architecture and Design
+## 🎯 What Is This Project? (The "Why")
 
-PLF operates entirely on a single-pass orchestration model guided by an Interpreter and a powerful Context Engine.
+Modern tech stacks require different languages for different jobs: Python for Machine Learning, JavaScript for fast Async I/O, C++ for raw execution speed, and Java for enterprise scalability.
 
-1.  **Lexer & Parser**: The `core/parser.py` consumes `.poly` plain text files. Instead of a traditional grammar, it parses blocks scoped by `language { ... }` segments, segregating language-specific code into individual `BlockNode` structures.
-2.  **Global AST & Context Engine**: The `core/context.py` holds execution variables iteratively. Variables defined in `global` or explicitly exported from `python` are captured and serialized via a highly robust marshalling engine based on JSON and dictionary translations.
-3.  **Function Registry (`core/function_registry.py`)**: Intercepts `def` inside global configurations and extracts AST signatures dynamically allowing JS and Python blocks to call cross-platform routines seamlessly.
-4.  **Class Registry (`core/class_registry.py`)**: Captures `class` definitions inside the abstract `global` scope, and dynamically generates the exact class schemas in Python (`class`), JavaScript ES6 (`class`), C++ (`class`, public struct mappings), and Java (`public class`).
+**The Problem:**
+Connecting these normally requires setting up REST APIs, gRPC, Protocol Buffers, or Microservices. This introduces severe network latency, heavy serialization overhead, and requires writing massive amounts of boilerplate code just to pass a simple piece of data from one language to another.
 
----
-
-## Project Structure
-
-The filesystem structure ensures modularity and decoupling of the interpreter pipeline.
-
-*   **`/`**: Root. Holds `poly.py` parser script and `poly.bat` convenience script.
-*   **`core/`**: 
-    *   `ast.py`, `lexer.py`, `parser.py`: Structural tree breakdown of the `.poly` script.
-    *   `interpreter.py`: The heart of the program that sequences the `global` definitions and hands operations over to individual runners.
-    *   `context.py`: Holds references to active exported variables and states.
-    *   `function_registry.py` & `class_registry.py`: Manage state for functions and cross-language class bridging.
-*   **`languages/`**:
-    *   Contains `<lang>_lang.py` files for `python`, `js`, `cpp`, `java`, and `c`.
-    *   Each file implements a `run()` method taking `code`, `context`, and `registry`. Standard Output is captured synchronously.
-*   **`global_ns/`**:
-    *   Houses internal bootstrapping capabilities and `marshalling.py` for advanced AST translations across boundaries.
-*   **`examples/`**:
-    *   Various sandbox environments and `.poly` files providing demonstrations of context bindings.
+**Our Solution:**
+PLF solves this instantly. By using a single `.poly` file, developers can seamlessly pass a Python list to a JavaScript array, run an algorithm in C++, and print it in Java—all with zero network requests and completely shared context.
 
 ---
 
-## Syntax and Core Concepts
+## ✨ What We Made: Core Features
 
-A standard `.poly` file consists of `blocks`. A block explicitly specifies the language it intends to compile and run under.
+To make this possible, we engineered a completely custom runtime orchestrator packed with advanced compiler-level features:
 
-```poly
-global {
-    my_shared_var = 12345
-}
+1. **Single-File Execution Context:** Define multiple language blocks (`python { ... }`, `javascript { ... }`) in one script.
+2. **Universal JNI Bridge Architecture:** A powerful bridging system for languages like Java and C++ to hook natively into our Python-driven orchestrator.
+3. **Bidirectional IPC (Inter-Process Communication):** Language blocks run in their native environments but communicate effortlessly over a high-speed IPC bridge.
+4. **Global Abstract Classes & OOP Mapping:** Define a `class` once in a `global` block, and the PLF engine auto-generates the exact equivalent schema for Python (`class`), JavaScript (`class ES6`), Java (`public class`), and C++ (`struct/class`).
+5. **Handle-Based Method Proxying:** If a Java object is instantiated, JavaScript can call methods on that object. PLF uses "object handles" and recursive stub routing to forward the method call to the host language and return the result.
+6. **Smart Marshalling Engine:** Automatically translates primitive and nested types between boundaries (e.g., Python `dict` <-> C++ `std::map`).
 
-python {
-    print("Python running. Variable:", my_shared_var)
-    local_python_var = [1, 2, 3]
-    export("nums", local_python_var)
-}
+---
 
-javascript {
-    console.log("JS running! Nums length:", nums.length);
-}
+## 🛠️ How We Made It: The Architecture
+
+PLF operates on a strictly defined **Single-Pass Synchronous Orchestration Model**. If you are reading this codebase for the first time, here is how the engine processes a file:
+
+1. **The Lexer & Parser (`core/lexer.py`, `core/parser.py`):**
+   - The engine reads the text inside the `.poly` file. Instead of building a complex grammar tree for all languages, it segments the code by language identifiers (e.g., `python { ... }`) into isolated "blocks".
+2. **The Interpreter & Context Engine (`core/interpreter.py`, `core/context.py`):**
+   - The heart of the program. It steps through the blocks sequentially. The `Context Engine` acts as the shared memory "brain". Variables exported from one block are placed here.
+3. **The Global Scope & Registries (`core/function_registry.py`, `core/class_registry.py`):**
+   - Before executing code, PLF scans the `global` blocks to find universal functions and classes. It analyzes their shapes/signatures and deposits "stub" representations of them into the Context Engine.
+4. **The Language Runners (`languages/*_lang.py`):**
+   - The Interpreter hands the code to the specific runner. For Python, it injects variables directly via `exec()`. For JS, it spawns Node.js and prepends a string template. For C++/Java, it dynamically generates source files containing necessary C++ `std::map` headers or Java JNI bridge code, compiles them, and runs them.
+5. **The Universal Bridge (Method Proxying):**
+   - During execution, if C++ calls a Python function, it invokes a local "stub" that triggers an IPC call to the Context Engine. The Context Engine pauses, runs the actual Python function, and returns the serialized result back to C++.
+
+---
+
+## 📊 Architectural Diagrams (For Beginners)
+
+Here are clear, visual mappings of how the system breathes life into your code.
+
+### 1. The Core Execution Pipeline
+When you run `python poly.py my_script.poly`, this is the exact flow of data.
+
+```mermaid
+graph TD
+    A[my_script.poly] -->|Read File| B(Lexer / Tokenizer)
+    B -->|Group by Language| C(AST Parser)
+    C -->|Global Definitions| D{PLF Interpreter Orchestrator}
+    
+    D -->|Register| E[(Function & Class Registry)]
+    
+    D -->|Run Python Block| F[Python Runner]
+    F <-->|Updates| G[(Shared Memory Context)]
+    
+    D -->|Run JS Block| H[JavaScript Runner]
+    H <-->|Reads/Updates| G
+    
+    D -->|Run C++ Block| I[C++ Compiler & Runner]
+    I <-->|Reads/Updates| G
+    
+    G -->|Final State Context| J([Execution Complete])
 ```
 
-The execution paradigm is completely synchronous. A Python block executes, halts, modifies the `Context`, and subsequently, the JS block boots, reads the Context, and proceeds.
+### 2. Method Proxying & JNI Bridging (Object Handle Flow)
+How does JavaScript call a method on a Python object? Below is our "Recursive Stub Routing" and Proxy architecture.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant JS as JavaScript Block
+    participant Bridge as Bridge / IPC <br> (Marshaller)
+    participant Ctx as Context Engine <br> (Object Store)
+    participant Py as Python Runtime
+
+    Note over Py, Ctx: Object is created in Python
+    Py->>Ctx: export("my_model", TensorFlowModel)
+    Ctx->>Ctx: Generate Handle ID: 0x99A
+    Ctx-->>Bridge: Register Proxy Stub for 0x99A
+    
+    Note over JS, Bridge: JavaScript execution begins
+    Bridge->>JS: Inject stub `my_model` with Handle 0x99A
+    JS->>JS: my_model.train(data)
+    JS->>Bridge: polyCallMethod(0x99A, "train", [data])
+    
+    Bridge->>Ctx: Map Handle 0x99A to True Python Object
+    Ctx->>Py: execute getattr(my_model, "train")(data)
+    Py-->>Ctx: Return success
+    Ctx-->>Bridge: Serialize Response
+    Bridge-->>JS: Promise Resolves / Synchronous Return
+```
 
 ---
 
-## Variable and Context Binding
+## 💻 Syntax and Usage
 
-The most powerful feature of PLF is avoiding manually serializing data.
-When in a block, you can modify the context:
-
-*   **Python**: Automatically extracts all top-level variables and adds them to context if they aren't functions. Can explicitly use `export("name", value)`.
-*   **JavaScript**: Variables from the Context are injected via Node.js AST templates statically as strings before `node -e` is invoked.
-
-*Currently C++ and Java are structurally rigid; variables usually only cascade natively through object instantiations or function wrappers rather than loosely-typed JSON dumps directly into compiled routines, though this relies on the specific `Adapter` implementations.*
-
----
-
-## Cross-Language Functions
-
-The `function_registry` actively detects functions written in the global block.
+A PLF file uses extremely readable bracket syntax. Below is a real example showing seamless data and OOP passing.
 
 ```poly
 global {
+    # Define a pure architectural blueprint that all languages will understand
+    class User {
+        string username
+        int age
+    }
+
     python {
         def global_math_add(a, b):
             return a + b
     }
 }
-```
 
-This function traverses the internal PLF AST and calculates its parameter signatures using `core/function_signature.py`. Once mapped, a pseudo-stub is natively mapped across local bounds so that other local python routines or inter-language calls (like JS `polyCall` adapters) can successfully resolve to the original procedure!
+python {
+    print("Python setup begins...")
+    # Instantiate the global class directly!
+    admin = User(username="admin_sireesh", age=30)
+    export("admin_user", admin)
+    
+    dataset = [1, 2, 3, 4]
+    export("nums", dataset)
+}
 
----
-
-## Global and Local Object-Oriented Programming
-
-A colossal achievement within the PLF project is the seamless integration of deeply structured Class typings and state mechanisms using the **ClassRegistry** framework.
-
-**Global Scope Abstract Classes**
-By declaring a pure `class` structure in the `global` block, PLF extracts the class blueprint. 
-```poly
-global {
-    class Product {
-        string name
-        float price
-    }
+javascript {
+    // JavaScript natively receives the Context
+    console.log("Hello from NodeJS!");
+    console.log("Admin name is: ", admin_user.username);
+    
+    // Call the global python function seamlessly!
+    let total = global_math_add(nums[0], nums[3]);
+    console.log("JS called Python function to get:", total);
 }
 ```
 
-Behind the scenes, the `core/class_registry.py` processes this `Product` and generates equivalent boilerplate class codes for every single supported OOP language! 
-1. **Python**: Creates a `class Product` with a standardized `__init__` constructor and an auto-generated `to_dict()` routine.
-2. **JavaScript**: Renders an ES6 `class Product` with a native `constructor(...)` implementation.
-3. **C++**: Compiles a standard class definition with inline constructors handling `std::string` bindings gracefully.
-4. **Java**: Prepends a pure POJO (Plain Old Java Object) `class Product` outside of the primary `PolyJavaRuntime` domain to guarantee successful independent instantiations.
+---
 
-**Cross-Boundary Object Transfer**
-You can instantiate a class locally, mapping it securely within the framework natively, OR you can instantiate it in the global context, exporting it identically across languages. Every boundary respects the local class blueprint internally without requiring manual `JSON.parse` or casting mechanisms manually.
+## 🔄 Supported Languages & Type Mappings
+
+When the Marshalling Engine bridges variables, it automatically converts native types without manual parsing required by the developer.
+
+| PLF Global / Python | JavaScript | C++ | Java |
+|:---:|:---:|:---:|:---:|
+| `list` | `Array` | `std::vector<T>` | `ArrayList<T>` |
+| `dict` | `Object` | `std::map<K,V>` | `HashMap<K,V>` |
+| `str` | `String` | `std::string` | `String` |
+| `int`, `float` | `Number` | `int`, `float`| `Integer`, `Float` |
+| `bool` | `Boolean` | `bool` | `Boolean` |
+| **Global `class`** | **ES6 `class`**| **Compiled `class`** | **POJO `public class`** |
 
 ---
 
-## Supported Languages Deep Dive
+## 🚀 Running The Code
 
-### Python (`python_lang.py`)
-Executed utilizing the native `exec()` command inside the existing orchestration python kernel. Thus, it can bind `local_env` extremely cleanly and capture internal variables directly via standard `dict.items()`. It handles OOP natively via Python's `inspect` capabilities to evaluate which artifacts are exported back to `Context`.
+There are no complicated configurations. Just write the `.poly` file and run it.
 
-### JavaScript (`js_lang.py`)
-Runs effectively by spawning an external Node.js process `subprocess.run(["node", "-e", code])`. The runner actively builds a massive JS prefix containing `var x = y;` JSON mappings to securely translate context into the Node engine. It also auto-hooks standard ES6 Classes into the preamble allowing JS to treat Global classes natively.
-
-### C++ (`cpp_lang.py`)
-Relies on spawning G++ processes (either directly via bash or via `tempfile` handling inside `.tmp` environments on Windows). The context explicitly renders `#include <string>` and `#include <iostream>` wrappers, constructs the C++ `class` abstractions natively above your `int main()` code block natively. Temporary binaries (`.exe` on NT) are instantly wiped gracefully upon task termination ensuring clean environments.
-
-### Java (`java_lang.py`)
-Acts upon explicit `javac` processes spawned dynamically from temp directories. If the user invokes Java without abstract classes, it injects them into a `PolyJavaRuntime` entrypoint. Otherwise, PLF correctly attaches abstract Global classes synchronously without messing with access modifiers like `public/private` improperly, preventing JVM strictness errors natively.
-
----
-
-## Usage & CLI
-
-There's no complex compilation configuration or `tsconfig.json` overhead. You write exactly what you need in the script and execute it immediately through the entrypoint.
-
-Command Line Arguments:
 ```bash
-# General formatting natively executed leveraging Python
-python poly.py my_script.poly
+# Execute using Python directly
+python poly.py examples/my_script.poly
 
-# On Windows utilizing the dedicated batch script runtime
-poly.bat my_script.poly
+# Or use the convenience batch script on Windows
+poly.bat examples/my_script.poly
 ```
 
-**Common Flags / Parameters:**
-Currently, parameters are strict to file executions natively. Be sure your host operating system has `node`, `javac`, and `g++` added locally within its `$PATH` variable for executions outside Python to proceed fully undisturbed.
+**Prerequisites:**
+Ensure your machine's environment variables (`$PATH` / `%PATH%`) have bindings to:
+- `python` (Core Orchestrator)
+- `node` (JavaScript Engine execution)
+- `g++` (C/C++ compiler)
+- `javac` and `java` (JVM execution)
 
 ---
 
-## Extending PLF
-
-Extensibility relies intrinsically on the `languages/` plugins constraint module!
-
-1. Create `languages/rust_lang.py`.
-2. Define a solitary `def run(code, context, registry, is_global):` method.
-3. Register the runner globally within `languages/__init__.py`.
-
-By expanding `FunctionRegistry` and `ClassRegistry` endpoints, developers can actively orchestrate data serialization into virtually any high-capacity runtime safely!
-
----
-*Created and maintained under the Poly_Env workspace. Pushing boundaries through true interoperability.*
+### *Authored & Maintained inside the Poly_Env workspace. Breaking language boundaries at compile-time.*
